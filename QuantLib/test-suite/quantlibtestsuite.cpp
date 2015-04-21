@@ -99,6 +99,7 @@
 #include "gjrgarchmodel.hpp"
 #include "gsr.hpp"
 #include "hestonmodel.hpp"
+#include "hestonslvmodel.hpp"
 #include "himalayaoption.hpp"
 #include "hybridhestonhullwhiteprocess.hpp"
 #include "inflation.hpp"
@@ -381,6 +382,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(ExtensibleOptionsTest::suite());
     test->add(FdHestonTest::experimental());
     test->add(HestonModelTest::experimental());
+    test->add(HestonSLVModelTest::experimental());
     test->add(HimalayaOptionTest::suite());
     test->add(InflationCPICapFloorTest::suite());
     test->add(InflationVolTest::suite());
