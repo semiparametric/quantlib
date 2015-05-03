@@ -31,7 +31,15 @@
 #include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/termstructures/volatility/abcd.hpp>
 #include <ql/math/integrals/twodimensionalintegral.hpp>
+#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#endif
+#include <boost/lambda/bind.hpp>
 #include <boost/lambda/lambda.hpp>
+#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
+#pragma GCC diagnostic pop
+#endif
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
@@ -184,23 +192,17 @@ void IntegralTest::testFolinIntegration() {
     }
 }
 
-namespace {
-
-    Real f1(Real x) {
-        return 1.2*x*x+3.2*x+3.1;
-    }
-
-    Real f2(Real x) {
-        return 4.3*(x-2.34)*(x-2.34)-6.2*(x-2.34) + f1(2.34);
-    }
-
-}
-
 void IntegralTest::testDiscreteIntegrals() {
     BOOST_TEST_MESSAGE("Testing discrete integral formulae...");
 
+    using boost::lambda::_1;
+
     Array x(6), f(6);
     x[0] = 1.0; x[1] = 2.02; x[2] = 2.34; x[3] = 3.3; x[4] = 4.2; x[5] = 4.6;
+
+    const boost::function<Real (Real) > f1 = 1.2*_1*_1+3.2*_1+3.1;
+    const boost::function<Real (Real) > f2
+        = 4.3*(_1-x[2])*(_1-x[2])-6.2*(_1-x[2]) + f1(x[2]);
 
     std::transform(x.begin(), x.begin()+3, f.begin(),   f1);
     std::transform(x.begin()+3, x.end(),   f.begin()+3, f2);

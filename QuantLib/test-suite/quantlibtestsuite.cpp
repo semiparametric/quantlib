@@ -384,6 +384,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(ExtensibleOptionsTest::suite());
     test->add(FdHestonTest::experimental());
     test->add(HestonModelTest::experimental());
+    test->add(HestonModelTest::experimental());
     test->add(HestonSLVModelTest::experimental());
     test->add(HimalayaOptionTest::suite());
     test->add(InflationCPICapFloorTest::suite());
