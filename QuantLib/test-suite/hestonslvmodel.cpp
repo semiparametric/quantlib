@@ -58,6 +58,10 @@
 #include <ql/experimental/finitedifferences/fdmhestonfwdop.hpp>
 #include <ql/experimental/finitedifferences/fdmsquarerootfwdop.hpp>
 #include <ql/experimental/finitedifferences/fdmblackscholesfwdop.hpp>
+<<<<<<< HEAD
+=======
+#include <ql/experimental/finitedifferences/fdmlocalvolfwdop.hpp>
+>>>>>>> 2ccce601636fd53017df7d6c8a98b9e115194748
 #include <ql/experimental/finitedifferences/fdmhestongreensfct.hpp>
 #include <ql/experimental/exoticoptions/analyticpdfhestonengine.hpp>
 
@@ -1245,6 +1249,7 @@ void HestonSLVModelTest::testHestonFokkerPlanckFwdEquationLogLVLeverage() {
 
 
 void HestonSLVModelTest::testBlackScholesFokkerPlanckFwdEquationLocalVol() {
+<<<<<<< HEAD
     BOOST_TEST_MESSAGE("Testing Fokker-Planck forward equation for BS Local Vol process...");
 
     SavedSettings backup;
@@ -1370,6 +1375,134 @@ void HestonSLVModelTest::testBlackScholesFokkerPlanckFwdEquationLocalVol() {
             }
         }
     }
+=======
+	BOOST_TEST_MESSAGE(
+			"Testing Fokker-Planck forward equation for BS Local Vol process...");
+
+	SavedSettings backup;
+
+	const DayCounter dc = ActualActual();
+	const Date todaysDate(5, July, 2014);
+	Settings::instance().evaluationDate() = todaysDate;
+
+	const Real s0 = 100;
+	const Real x0 = std::log(s0);
+	const Rate r = 0.035;
+	const Rate q = 0.01;
+
+	const Calendar calendar = TARGET();
+	const DayCounter dayCounter = Actual365Fixed();
+
+	const boost::shared_ptr<YieldTermStructure> rTS(
+			flatRate(todaysDate, r, dayCounter));
+	const boost::shared_ptr<YieldTermStructure> qTS(
+			flatRate(todaysDate, q, dayCounter));
+
+	boost::tuple<std::vector<Real>, std::vector<Date>,
+			boost::shared_ptr<BlackVarianceSurface> > smoothImpliedVol =
+			createSmoothImpliedVol(dayCounter, calendar);
+
+	const std::vector<Real>& strikes = smoothImpliedVol.get<0>();
+	const std::vector<Date>& dates = smoothImpliedVol.get<1>();
+	const Handle<BlackVolTermStructure> vTS = Handle<BlackVolTermStructure>(
+			createSmoothImpliedVol(dayCounter, calendar).get<2>());
+
+	const Size xGrid = 2 * 100 + 1;
+	const Size tGrid = 400;
+
+	const boost::shared_ptr<Quote> spot(new SimpleQuote(s0));
+	const boost::shared_ptr<BlackScholesMertonProcess> process(
+		new BlackScholesMertonProcess(
+			Handle<Quote>(spot),
+			Handle<YieldTermStructure>(qTS),
+			Handle<YieldTermStructure>(rTS), vTS));
+
+	const boost::shared_ptr<LocalVolTermStructure> localVol(
+		process->localVolatility().currentLink());
+
+	const boost::shared_ptr<PricingEngine> engine(
+			new AnalyticEuropeanEngine(process));
+
+	for (Size i = 1; i < dates.size(); ++i) {
+		for (Size j = 3; j < strikes.size() - 5; j += 5) {
+
+			const Date& exDate = dates[i];
+			const Date maturityDate = exDate;
+			const Time maturity = dc.yearFraction(todaysDate, maturityDate);
+			const boost::shared_ptr<Exercise> exercise(
+					new EuropeanExercise(exDate));
+
+			const boost::shared_ptr<FdmMesher> uniformMesher(
+				new FdmMesherComposite(
+					boost::shared_ptr<Fdm1dMesher>(
+						new FdmBlackScholesMesher(xGrid, process,
+							maturity, s0))));
+
+			//-- operator --
+			const boost::shared_ptr<FdmLinearOpComposite> uniformBSFwdOp(
+				new FdmLocalVolFwdOp(
+					uniformMesher, spot, rTS, qTS, localVol, 0.2));
+
+			const boost::shared_ptr<FdmMesher> concentratedMesher(
+				new FdmMesherComposite(
+					boost::shared_ptr<Fdm1dMesher>(
+						new FdmBlackScholesMesher(xGrid, process,
+								maturity, s0, Null<Real>(),
+								Null<Real>(), 0.0001, 1.5,
+								std::pair<Real, Real>(s0, 0.1)))));
+
+			//-- operator --
+			const boost::shared_ptr<FdmLinearOpComposite> concentratedBSFwdOp(
+				new FdmLocalVolFwdOp(
+					concentratedMesher, spot, rTS, qTS, localVol, 0.2));
+
+			const boost::shared_ptr<FdmMesher> shiftedMesher(
+				new FdmMesherComposite(
+					boost::shared_ptr<Fdm1dMesher>(
+						new FdmBlackScholesMesher(xGrid, process,
+							maturity, s0, Null<Real>(),
+							Null<Real>(), 0.0001, 1.5,
+							std::pair<Real, Real>(s0 * 1.1,
+									0.2)))));
+
+			//-- operator --
+			const boost::shared_ptr<FdmLinearOpComposite> shiftedBSFwdOp(
+				new FdmLocalVolFwdOp(
+					shiftedMesher, spot, rTS, qTS, localVol, 0.2));
+
+			const boost::shared_ptr<StrikedTypePayoff> payoff(
+					new PlainVanillaPayoff(Option::Call, strikes[j]));
+
+			VanillaOption option(payoff, exercise);
+			option.setPricingEngine(engine);
+
+			const Real expected = option.NPV();
+			const Real calcUniform = fokkerPlanckPrice1D(uniformMesher,
+					uniformBSFwdOp, payoff, x0, maturity, tGrid)
+					* rTS->discount(maturityDate);
+			const Real calcConcentrated = fokkerPlanckPrice1D(
+					concentratedMesher, concentratedBSFwdOp, payoff, x0,
+					maturity, tGrid) * rTS->discount(maturityDate);
+			const Real calcShifted = fokkerPlanckPrice1D(shiftedMesher,
+					shiftedBSFwdOp, payoff, x0, maturity, tGrid)
+					* rTS->discount(maturityDate);
+			const Real tol = 0.05;
+
+			if (std::fabs(expected - calcUniform) > tol) {
+				BOOST_FAIL(
+						"failed to reproduce european option price " << "with an uniform mesher" << "\n   strike:     " << strikes[i] << QL_FIXED << std::setprecision(8) << "\n   calculated: " << calcUniform << "\n   expected:   " << expected << "\n   tolerance:  " << tol);
+			}
+			if (std::fabs(expected - calcConcentrated) > tol) {
+				BOOST_FAIL(
+						"failed to reproduce european option price " << "with a concentrated mesher" << "\n   strike:     " << strikes[i] << QL_FIXED << std::setprecision(8) << "\n   calculated: " << calcConcentrated << "\n   expected:   " << expected << "\n   tolerance:  " << tol);
+			}
+			if (std::fabs(expected - calcShifted) > tol) {
+				BOOST_FAIL(
+						"failed to reproduce european option price " << "with a shifted mesher" << "\n   strike:     " << strikes[i] << QL_FIXED << std::setprecision(8) << "\n   calculated: " << calcShifted << "\n   expected:   " << expected << "\n   tolerance:  " << tol);
+			}
+		}
+	}
+>>>>>>> 2ccce601636fd53017df7d6c8a98b9e115194748
 }
 
 namespace {

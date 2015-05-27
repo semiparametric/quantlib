@@ -362,7 +362,7 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(VarianceSwapTest::suite());
     test->add(VolatilityModelsTest::suite());
 
-    // tests for experimental classes
+//    tests for experimental classes
     test->add(AmortizingBondTest::suite());
     test->add(AsianOptionTest::experimental());
     test->add(BarrierOptionTest::experimental());
@@ -382,6 +382,9 @@ test_suite* init_unit_test_suite(int, char* []) {
     test->add(EverestOptionTest::suite());
     test->add(ExtendedTreesTest::suite());
     test->add(ExtensibleOptionsTest::suite());
+    test->add(GsrTest::suite());
+    test->add(HestonModelTest::experimental());
+    test->add(GsrTest::suite());
     test->add(HestonModelTest::experimental());
     test->add(HestonSLVModelTest::experimental());
     test->add(HimalayaOptionTest::suite());
